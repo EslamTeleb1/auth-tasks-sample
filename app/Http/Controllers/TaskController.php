@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Task;
+use Illuminate\Support\Facades\Auth;
 
 class TaskController extends Controller
 {
@@ -14,7 +15,11 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = Task::all();
+
+        $user = Auth::user(); // Get the current authenticated user
+        $tasks = $user->tasks;
+//    dd($tasks);
+      // $tasks = Task::all();
         return view('tasks.index', compact('tasks'));
     }
 
@@ -42,6 +47,8 @@ class TaskController extends Controller
         ]);
 
         $validatedData['user_id'] = auth()->user()->id;
+        $validatedData['status'] = "pending";//default is pending
+
 
         Task::create($validatedData);
 
