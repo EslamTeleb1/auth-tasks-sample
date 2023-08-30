@@ -3,7 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\Event;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -28,3 +31,57 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+
+
+// Event::listen(QueryExecuted::class, function ($query) {
+//     Log::info("QueryExecuted event fired.");
+// });
+
+$disableListener = false;
+
+
+Event::listen(QueryExecuted::class, function ($query) use (&$disableListener) {
+    if (!$disableListener) {
+        try {
+            $sql = $query->sql;
+            $bindings = $query->bindings;
+            $time = $query->time;
+
+            // Replace placeholders in SQL with actual values
+            $actualSql = vsprintf(str_replace('?', "'%s'", $sql), $bindings);
+
+            // Create a string containing the SQL statement with actual values
+            $fullSqlStatement = $actualSql . ';';
+
+            // Check if the XML file already exists
+            $xmlFileName = 'queries.xml';
+            if (Storage::disk('local')->exists($xmlFileName)) {
+                // Read the existing XML file
+                $existingXml = simplexml_load_string(Storage::disk('local')->get($xmlFileName));
+
+                // Create a new query element
+                $queryElement = $existingXml->addChild('query');
+                $queryElement->addChild('sql', htmlspecialchars($fullSqlStatement));
+                $queryElement->addChild('time', $time);
+
+                // Save the updated XML data back to the file
+                Storage::disk('local')->put($xmlFileName, $existingXml->asXML());
+            } else {
+                // Create a new XML file if it doesn't exist
+                $xml = new SimpleXMLElement('<queries></queries>');
+                $queryElement = $xml->addChild('query');
+                $queryElement->addChild('sql', htmlspecialchars($fullSqlStatement));
+                $queryElement->addChild('time', $time);
+
+                Storage::disk('local')->put($xmlFileName, $xml->asXML());
+            }
+
+            // Re-enable the listener after storing the query
+            $disableListener = false;
+        } catch (\Exception $e) {
+            Log::error('Error capturing query:', ['message' => $e->getMessage()]);
+        }
+    }
+});
+

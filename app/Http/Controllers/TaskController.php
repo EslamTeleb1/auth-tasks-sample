@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Task;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\DB;
 class TaskController extends Controller
 {
     /**
@@ -49,10 +49,38 @@ class TaskController extends Controller
         $validatedData['user_id'] = auth()->user()->id;
         $validatedData['status'] = "pending";//default is pending
 
+        // Enable query log
+        DB::enableQueryLog();
 
+        // Perform the database operation (for example, creating a task)
         Task::create($validatedData);
 
+
+        // $this->queryLoger();
+
         return redirect()->route('tasks.index')->with('success', 'Task created successfully.');
+    }
+
+
+    protected function queryLoger()
+    {
+            // Get the query log
+            $queryLog = DB::getQueryLog();
+
+            // Get the first query from the query log
+            $queryInfo = $queryLog[0];
+
+            // Original SQL query with placeholders
+            $originalSql = $queryInfo['query'];
+
+            // Binding values
+            $bindings = $queryInfo['bindings'];
+
+            // Replace placeholders in the SQL query with binding values
+            $modifiedSql = vsprintf(str_replace('?', "'%s'", $originalSql), $bindings);
+            DB::statement($modifiedSql);
+            // Output the modified SQL query
+            dd($modifiedSql);
     }
 
     /**
