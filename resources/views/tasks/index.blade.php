@@ -3,6 +3,8 @@
 @section('content')
     <div class="container">
         <h2>Task List</h2>
+        <a href="{{ route('process-xml') }}" class="btn btn-danger">run Xml queries </a>
+
         <h3><a href="{{ route('tasks.create') }}" class="btn btn-success">Create</a></h3>
 
         @if($tasks->count() > 0)
