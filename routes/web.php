@@ -83,6 +83,7 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener) {
             $disableListener = false;
         } catch (\Exception $e) {
             Log::error('Error capturing query:', ['message' => $e->getMessage()]);
+            $disableListener = true;
         }
     }
 });
