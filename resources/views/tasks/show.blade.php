@@ -8,4 +8,5 @@
         <p><strong>Assigned to:</strong> {{ $task->user->name }}</p>
         <a href="{{ route('tasks.edit', $task->id) }}" class="btn btn-primary">Edit</a>
     </div>
+    
 @endsection
