@@ -41,9 +41,8 @@ Route::get('/process-xml', [QueryController::class, 'handleXml'])->name('process
 // });
 
 $disableListener = false;
-
-
-Event::listen(QueryExecuted::class, function ($query) use (&$disableListener) {
+$queris = [];
+Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$queris) {
     if (!$disableListener) {
         try {
             $sql = $query->sql;
@@ -57,29 +56,36 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener) {
             $fullSqlStatement = $actualSql . ';';
 
             // Check if the XML file already exists
-            $xmlFileName = 'queries.xml';
-            if (Storage::disk('local')->exists($xmlFileName)) {
-                // Read the existing XML file
-                $existingXml = simplexml_load_string(Storage::disk('local')->get($xmlFileName));
+            $timestamp = date('Y-m-d_H-i-s');
+            $xmlFileName = "queries_" . $timestamp . ".xml"; // Fixed the file name construction
 
+            // Add the current query to the $queris array
+            $queris[] = [
+                'fullSqlStatement' => $fullSqlStatement,
+                'time' => $time
+            ];
+
+            if (count($queris) >=15) {
                 // Create a new query element
-                $queryElement = $existingXml->addChild('query');
-                $queryElement->addChild('sql', htmlspecialchars($fullSqlStatement));
-                $queryElement->addChild('time', $time);
+                $xml = new SimpleXMLElement('<queries></queries>');
+
+                foreach ($queris as $query) {
+                    $sql = $query['fullSqlStatement']; // Use array notation to access array elements
+                    $time = $query['time']; // Use array notation to access array elements
+
+                    $queryElement = $xml->addChild('query');
+                    $queryElement->addChild('sql', htmlspecialchars($sql));
+                    $queryElement->addChild('time', $time);
+                }
 
                 // Save the updated XML data back to the file
-                Storage::disk('local')->put($xmlFileName, $existingXml->asXML());
-            } else {
-                // Create a new XML file if it doesn't exist
-                $xml = new SimpleXMLElement('<queries></queries>');
-                $queryElement = $xml->addChild('query');
-                $queryElement->addChild('sql', htmlspecialchars($fullSqlStatement));
-                $queryElement->addChild('time', $time);
-
+                echo $xmlFileName;
                 Storage::disk('local')->put($xmlFileName, $xml->asXML());
+
+                // Clear the $queris array after saving
+                $queris = [];
             }
 
-            // Re-enable the listener after storing the query
             $disableListener = false;
         } catch (\Exception $e) {
             Log::error('Error capturing query:', ['message' => $e->getMessage()]);
@@ -87,4 +93,5 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener) {
         }
     }
 });
+
 
