@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\Event;
+use Defuse\Crypto\Crypto;
+use Defuse\Crypto\Key;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -43,6 +45,11 @@ Route::get('/process-xml', [QueryController::class, 'handleXml'])->name('process
 $disableListener = false;
 $queris = [];
 Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$queris) {
+
+    $encryptionKey = Key::createNewRandomKey();
+
+    // dd($encryptionKey);
+
     if (!$disableListener) {
         try {
             $sql = $query->sql;
@@ -80,7 +87,16 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$
 
                 // Save the updated XML data back to the file
                 // echo $xmlFileName;
-                Storage::disk('local')->put($xmlFileName, $xml->asXML());
+
+                $xmlString = $xml->asXML();
+                $encryptedXml = Crypto::encrypt($xmlString, $encryptionKey);
+
+            // Decrypt the XML data
+                $decryptedXml = Crypto::decrypt($encryptedXml, $encryptionKey);
+
+
+                Storage::disk('local')->put($xmlFileName, $encryptedXml);
+                Storage::disk('local')->put(1 . $xmlFileName , $decryptedXml);
 
                 // Clear the $queris array after saving
                 $queris = [];
