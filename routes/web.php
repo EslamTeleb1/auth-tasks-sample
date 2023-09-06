@@ -79,7 +79,7 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$
                 }
 
                 // Save the updated XML data back to the file
-                echo $xmlFileName;
+                // echo $xmlFileName;
                 Storage::disk('local')->put($xmlFileName, $xml->asXML());
 
                 // Clear the $queris array after saving
