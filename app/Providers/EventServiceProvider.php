@@ -6,7 +6,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
-use App\Listeners\CaptureQueries;
+use App\Listeners\QueryExecutedListener;
 class EventServiceProvider extends ServiceProvider
 {
     /**
@@ -19,7 +19,7 @@ class EventServiceProvider extends ServiceProvider
             SendEmailVerificationNotification::class,
         ],
         QueryExecuted::class => [
-            CaptureQueries::class,
+            QueryExecutedListener::class,
         ],
     ];
 
@@ -30,6 +30,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        parent::boot();
+    }
     }
 }
