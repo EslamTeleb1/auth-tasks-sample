@@ -20,6 +20,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         QueryExecuted::class => [
             CaptureQueries::class,
+            \App\Listeners\QueryExecutedListener::class,
         ],
     ];
 
