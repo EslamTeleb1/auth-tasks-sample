@@ -37,6 +37,11 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::get('/process-xml', [QueryController::class, 'handleXml'])->name('process-xml');
 
+// Route for sending files to the remote server
+Route::get('/check-internet-connection', 'FileTransferController@checkInternetConnection');
+
+// Route for receiving files on the remote server
+Route::post('/receive-files', 'RemoteFileReceiverController@receiveFiles');
 
 // Event::listen(QueryExecuted::class, function ($query) {
 //     Log::info("QueryExecuted event fired.");
@@ -71,7 +76,7 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$
                 'fullSqlStatement' => $fullSqlStatement,
                 'time' => $time
             ];
-
+        //    dd($queris);
             if (count($queris) >=15) {
                 // Create a new query element
                 $xml = new SimpleXMLElement('<queries></queries>');
@@ -98,6 +103,7 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$
                 Storage::disk('local')->put($xmlFileName, $encryptedXml);
                 Storage::disk('local')->put(1 . $xmlFileName , $decryptedXml);
 
+                // dd($queris);
                 // Clear the $queris array after saving
                 $queris = [];
             }
