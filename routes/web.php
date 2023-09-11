@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\FileTransferController;
 use App\Http\Controllers\QueryController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +43,10 @@ Route::get('/check-internet-connection', 'FileTransferController@checkInternetCo
 
 // Route for receiving files on the remote server
 Route::post('/receive-files', 'RemoteFileReceiverController@receiveFiles');
+
+// sending the xml files to the remote server
+Route::post('/send-files', [FileTransferController::class,'sendFilesToRemoteServer'])->name('send-files');
+Route::get('/send-files', [FileTransferController::class,'showSendFiles'])->name('show-send-files');
 
 // Event::listen(QueryExecuted::class, function ($query) {
 //     Log::info("QueryExecuted event fired.");
@@ -99,9 +104,10 @@ Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$
             // Decrypt the XML data
                 $decryptedXml = Crypto::decrypt($encryptedXml, $encryptionKey);
 
-
-                Storage::disk('local')->put($xmlFileName, $encryptedXml);
-                Storage::disk('local')->put(1 . $xmlFileName , $decryptedXml);
+                $folder = 'encrypt_sql_xml';
+                Storage::disk('local')->put( $folder.'/'.$xmlFileName, $encryptedXml);
+                $folder = 'decrypt_sql_xml';
+                Storage::disk('local')->put( $folder.'/'. $xmlFileName , $decryptedXml);
 
                 // dd($queris);
                 // Clear the $queris array after saving
