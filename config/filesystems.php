@@ -52,6 +52,19 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
         ],
+        'ftp' => [
+            'driver' => 'ftp',
+            'host' => 'ftp.example.com',
+            'username' => 'your-username',
+            'password' => 'your-password',
+
+            // Optional FTP Settings...
+            // 'port' => 21,
+            // 'root' => '',
+            // 'passive' => true,
+            // 'ssl' => true,
+            // 'timeout' => 30,
+        ],
 
     ],
 

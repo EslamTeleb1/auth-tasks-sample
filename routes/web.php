@@ -48,6 +48,7 @@ Route::post('/receive-files', 'RemoteFileReceiverController@receiveFiles');
 Route::post('/send-files', [FileTransferController::class,'sendFilesToRemoteServer'])->name('send-files');
 Route::get('/send-files', [FileTransferController::class,'showSendFiles'])->name('show-send-files');
 
+Route::get('/send', [FileTransferController::class,'sendFilesToRemoteServer'])->name('send');
 // Event::listen(QueryExecuted::class, function ($query) {
 //     Log::info("QueryExecuted event fired.");
 // });

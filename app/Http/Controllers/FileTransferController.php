@@ -18,21 +18,31 @@ class FileTransferController extends Controller
         if(true)
         {
             $files = Storage::files('encrypt_sql_xml'); // Change the folder path as needed
-            $remoteServerUrl = 'http://127.0.0.1:8003/receivefiles'; // Replace with your remote server URL
+            $remoteServerUrl = 'http://127.0.0.1:8005/upload'; // Replace with your remote server URL
             // dd($files);
             foreach ($files as $file) {
 
                 $fileContent = file_get_contents(storage_path('app/' . $file));
                 $fileName = basename($file);
                 // dd($fileName,$fileContent);
-                $response = Http::attach('file', $fileContent, $fileName)
+                // Generate the CSRF token
+            $csrfToken = csrf_token();
+            // dd($csrfToken);
+                $response = Http::withToken($csrfToken)
+                    ->attach('file', $fileContent, $fileName)
+                    // ->attach('_token', $csrfToken)
                     ->post($remoteServerUrl);
 
 
                 if ($response->successful()) {
+
+                   return $response->body();
                     dd("success");
+
                 } else {
-                    Log::error('File upload error: ' . $response->status() . ' - ' . $response->body());
+                    Log::error('File upload error: ' . $response->status() . ' - ');
+
+                    return $response->body();
                 }
             }
 
