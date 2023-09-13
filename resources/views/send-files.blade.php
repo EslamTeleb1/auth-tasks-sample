@@ -8,11 +8,11 @@
 <body>
     <h1>Upload XML Files</h1>
 
-     <a class="btn" href="{{route('send')}}"> send files</a>
-    <form action="http://127.0.0.1:8005/upload" method="POST" enctype="multipart/form-data">
+     <a class="btn" href="{{route('sendfiles')}}"> send files</a>
+    {{-- <form action="{{route('send-files')}}" method="POST" enctype="multipart/form-data">
         @csrf
         <input type="file" name="file" multiple>
         <button class="btn" type="submit">send the xml files</button>
-    </form>
+    </form> --}}
 </body>
 </html>

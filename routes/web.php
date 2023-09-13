@@ -38,20 +38,17 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::get('/process-xml', [QueryController::class, 'handleXml'])->name('process-xml');
 
-// Route for sending files to the remote server
-Route::get('/check-internet-connection', 'FileTransferController@checkInternetConnection');
-
-// Route for receiving files on the remote server
-Route::post('/receive-files', 'RemoteFileReceiverController@receiveFiles');
-
 // sending the xml files to the remote server
+Route::get('/sendfiles', [FileTransferController::class,'sendFilesToRemoteServer'])->name('sendfiles');
+
 Route::post('/send-files', [FileTransferController::class,'sendFilesToRemoteServer'])->name('send-files');
+
 Route::get('/send-files', [FileTransferController::class,'showSendFiles'])->name('show-send-files');
 
-Route::get('/send', [FileTransferController::class,'sendFilesToRemoteServer'])->name('send');
-// Event::listen(QueryExecuted::class, function ($query) {
-//     Log::info("QueryExecuted event fired.");
-// });
+
+
+
+
 
 $disableListener = false;
 $queris = [];
