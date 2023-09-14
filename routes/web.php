@@ -6,6 +6,7 @@ use App\Http\Controllers\FileTransferController;
 use App\Http\Controllers\QueryController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\Event;
@@ -45,79 +46,138 @@ Route::post('/send-files', [FileTransferController::class,'sendFilesToRemoteServ
 
 Route::get('/send-files', [FileTransferController::class,'showSendFiles'])->name('show-send-files');
 
-
-
-
-
-
 $disableListener = false;
-$queris = [];
-Event::listen(QueryExecuted::class, function ($query) use (&$disableListener, &$queris) {
+$queris = []; // Initialize the array outside of the callback function
 
-    $encryptionKey = Key::createNewRandomKey();
 
-    // dd($encryptionKey);
+// DB::listen(
+//     function ($query) use (&$disableListener, &$queris) {
+//         $encryptionKeySerialized = env('ENCRYPTION_KEY'); // Get the serialized encryption key from .env
+//         $encryptionKey = unserialize(base64_decode($encryptionKeySerialized));
+//         DB::enableQueryLog();
 
-    if (!$disableListener) {
-        try {
-            $sql = $query->sql;
-            $bindings = $query->bindings;
-            $time = $query->time;
+//         // and then you can get query log
 
-            // Replace placeholders in SQL with actual values
-            $actualSql = vsprintf(str_replace('?', "'%s'", $sql), $bindings);
+//         // dd(DB::getQueryLog());
+//         if (!$disableListener) {
+//             try {
+//                 $sql = $query->sql;
+//                 $bindings = $query->bindings;
+//                 $time = $query->time;
 
-            // Create a string containing the SQL statement with actual values
-            $fullSqlStatement = $actualSql . ';';
+//                 // Replace placeholders in SQL with actual values
+//                 $actualSql = vsprintf(str_replace('?', "'%s'", $sql), $bindings);
 
-            // Check if the XML file already exists
-            $timestamp = date('Y-m-d_H-i-s');
-            $xmlFileName = "queries_" . $timestamp . ".xml"; // Fixed the file name construction
+//                 // Create a string containing the SQL statement with actual values
+//                 $fullSqlStatement = $actualSql . ';';
 
-            // Add the current query to the $queris array
-            $queris[] = [
-                'fullSqlStatement' => $fullSqlStatement,
-                'time' => $time
-            ];
-        //    dd($queris);
-            if (count($queris) >=15) {
-                // Create a new query element
+//                 // Add the current query to the $queris array
+//                 $queris[] = [
+//                     'fullSqlStatement' => $fullSqlStatement,
+//                     'time' => $time
+//                 ];
+//                 // foreach ($queris as $query) {
+//                 //     echo $query['fullSqlStatement'];
+//                 // }
+//                  echo count($queris);
+//                 // Check if you have collected enough queries
+//                 if (count($queris) == 50) {
+//                     // echo count($queris);
+//                     // Create a new query element
+//                     $xml = new SimpleXMLElement('<queries></queries>');
+
+//                     foreach ($queris as $query) {
+//                         $sql = $query['fullSqlStatement'];
+//                         $time = $query['time'];
+
+//                         $queryElement = $xml->addChild('query');
+//                         $queryElement->addChild('sql', htmlspecialchars($sql));
+//                         $queryElement->addChild('time', $time);
+//                     }
+
+//                     $xmlString = $xml->asXML();
+//                     $encryptedXml = Crypto::encrypt($xmlString, $encryptionKey);
+
+//                     // Decrypt the XML data
+//                     $decryptedXml = Crypto::decrypt($encryptedXml, $encryptionKey);
+
+//                     $timestamp = date('Y-m-d_H-i-s');
+//                     $xmlFileName = "queries_" . $timestamp . ".xml";
+
+//                     $folder = 'encrypt_sql_xml';
+//                     Storage::disk('local')->put($folder . '/' . $xmlFileName, $encryptedXml);
+//                     $folder = 'decrypt_sql_xml';
+//                     Storage::disk('local')->put($folder . '/' . $xmlFileName, $decryptedXml);
+
+//                     // Clear the $queris array after saving
+//                     $queris = [];
+//                     // dd($queris);
+//                 }
+
+//                 $disableListener = false;
+//             } catch (\Exception $e) {
+//                 Log::error('Error capturing query:', ['message' => $e->getMessage()]);
+//                 $disableListener = true;
+//             }
+//         }
+//     }
+// );
+
+
+Event::listen(QueryExecuted::class,
+ function ($query) use (&$disableListener, &$queris) {
+    $encryptionKeySerialized = env('ENCRYPTION_KEY'); // Get the serialized encryption key from .env
+    $encryptionKey = unserialize(base64_decode($encryptionKeySerialized));
+    // DB::enableQueryLog();
+
+    // and then you can get query log
+ try {
+        // dd(DB::getQueryLog());
+        if (!$disableListener) {
+
+                $sql = $query->sql;
+                $bindings = $query->bindings;
+                $time = $query->time;
+
+                // Replace placeholders in SQL with actual values
+                $actualSql = vsprintf(str_replace('?', "'%s'", $sql), $bindings);
+
+                // Create a string containing the SQL statement with actual values
+                $fullSqlStatement = $actualSql . ';';
+
+                $xmlFileName = "queries.xml";
+                $filePath = storage_path('app/encrypt_sql_xml1/' . $xmlFileName);
+
                 $xml = new SimpleXMLElement('<queries></queries>');
 
-                foreach ($queris as $query) {
-                    $sql = $query['fullSqlStatement']; // Use array notation to access array elements
-                    $time = $query['time']; // Use array notation to access array elements
+                if (file_exists($filePath)) {
+                    // Load the existing XML file
+                    $xml = simplexml_load_file($filePath);
+                }
+                // Add new queries to the XML
+
+                    $sql = $fullSqlStatement;
+                    $time = $time;
 
                     $queryElement = $xml->addChild('query');
                     $queryElement->addChild('sql', htmlspecialchars($sql));
                     $queryElement->addChild('time', $time);
-                }
-
-                // Save the updated XML data back to the file
-                // echo $xmlFileName;
 
                 $xmlString = $xml->asXML();
-                $encryptedXml = Crypto::encrypt($xmlString, $encryptionKey);
+                // $timestamp = date('Y-m-d_H-i-s');
+                // $xmlFileName = "queries_" . $timestamp . ".xml";
 
-            // Decrypt the XML data
-                $decryptedXml = Crypto::decrypt($encryptedXml, $encryptionKey);
+                $folder = 'encrypt_sql_xml1';
+                Storage::disk('local')->put($folder . '/' . $xmlFileName, $xmlString);
 
-                $folder = 'encrypt_sql_xml';
-                Storage::disk('local')->put( $folder.'/'.$xmlFileName, $encryptedXml);
-                $folder = 'decrypt_sql_xml';
-                Storage::disk('local')->put( $folder.'/'. $xmlFileName , $decryptedXml);
+                $disableListener = false;
+                }
 
-                // dd($queris);
-                // Clear the $queris array after saving
-                $queris = [];
-            }
-
-            $disableListener = false;
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error('Error capturing query:', ['message' => $e->getMessage()]);
             $disableListener = true;
         }
-    }
-});
 
+});
 
