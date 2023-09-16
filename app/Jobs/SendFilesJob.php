@@ -1,79 +1,71 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Jobs;
 
-use Illuminate\Http\Request;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Defuse\Crypto\Crypto;
 use Defuse\Crypto\Key;
-use App\Jobs\SendFilesJob;
-class FileTransferController extends Controller
+
+class SendFilesJob implements ShouldQueue
 {
-    public function showSendFiles()
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /**
+     * Create a new job instance.
+     *
+     * @return void
+     */
+    public function __construct()
     {
-        return view('send-files');
+        //
     }
-    public function sendFilesToRemoteServer()
+
+    /**
+     * Execute the job.
+     *
+     * @return void
+     */
+    public function handle()
     {
-        $encryptionKeySerialized = env('ENCRYPTION_KEY'); // Get the serialized encryption key from .env
+        $encryptionKeySerialized = env('ENCRYPTION_KEY');
         $encryptionKey = unserialize(base64_decode($encryptionKeySerialized));
 
         if ($this->check_internet_connection()) {
             $files = Storage::files('encrypt_sql_xml1');
-            // note : it will be the sub domain of the client
             $remoteServerUrl = 'http://127.0.0.1:8005/api/upload';
-            // dd($files);
+
             foreach ($files as $file) {
-
                 $fileContent = file_get_contents(storage_path('app/' . $file));
-
                 $encryptedXml = Crypto::encrypt($fileContent, $encryptionKey);
-
-                // dd($encryptedXml);
                 $fileName = basename($file);
 
                 $csrfToken = csrf_token();
 
                 $response = Http::withToken($csrfToken)
                     ->attach('file', $encryptedXml, $fileName)
-                    // ->attach('_token', $csrfToken)
                     ->post($remoteServerUrl);
 
                 if ($response->successful()) {
-                    //     dd("success");
-                    // return $response->body();
                     $timestamp = date('Y-m-d_H-i-s');
-
-
                     $destinationPath = 'public/sended/' . $timestamp . basename($file);
-
-                    // $xmlFileName = "queries_" . $timestamp . ".xml";
                     Storage::move($file, $destinationPath);
                 } else {
-                    // dd( $response->status(),$response->body());
                     Log::error('File upload error: ' . $response->status() . ' - ');
-
-                    return $response->body();
                 }
             }
-
-
-            return "Files sent to remote server successfully.";
         } else {
-            return "there is no internet connection";
+            Log::error('No internet connection.');
         }
     }
-  public function  sendFilesToRemoteServer1()
-  {
-        // Dispatch the SendFilesJob to handle file sending asynchronously.
-        SendFilesJob::dispatch();
-
-        return "File sending job has been dispatched.";
-  }
-
-    function check_internet_connection()
+    private function check_internet_connection()
     {
         $url = 'http://www.google.com'; // You can use any reliable website here
 
@@ -89,4 +81,6 @@ class FileTransferController extends Controller
         // Check if the HTTP response code is 200 (OK)
         return $httpCode === 200;
     }
+
+
 }

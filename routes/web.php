@@ -40,7 +40,7 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 Route::get('/process-xml', [QueryController::class, 'handleXml'])->name('process-xml');
 
 // sending the xml files to the remote server
-Route::get('/sendfiles', [FileTransferController::class,'sendFilesToRemoteServer'])->name('sendfiles');
+Route::get('/sendfiles', [FileTransferController::class,'sendFilesToRemoteServer1'])->name('sendfiles');
 
 Route::post('/send-files', [FileTransferController::class,'sendFilesToRemoteServer'])->name('send-files');
 
